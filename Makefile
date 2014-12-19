@@ -20,6 +20,8 @@ MECHJEBFILES := $(wildcard MechJeb2/*.cs) \
 	$(wildcard MechJeb2/Properties/*.cs) \
 	$(wildcard MechJeb2/alglib/*.cs)
 
+TESTFILES := $(wildcard tests/*.cs)
+
 RESGEN2 := resgen2
 GMCS    := gmcs
 GIT     := git
@@ -40,6 +42,15 @@ info:
 	@echo "  KSP Data: ${KSPDIR}"
 	@echo "================================"
 
+run:
+	${RESGEN2} -usesourcepath MechJeb2/Properties/Resources.resx build/Resources.resources
+	${GMCS} -lib:"${MANAGED}","/Users/conrad/dev/mono/MechJeb2/build/" \
+		-r:Assembly-CSharp,Assembly-CSharp-firstpass,UnityEngine,nunit.framework,build/MechJeb2.dll \
+		-out:tests/CanIEvenCompile.exe \
+		${TESTFILES} \
+		-resource:build/Resources.resources,MuMech.Properties.Resources.resources
+	mono tests/CanIEvenCompile.exe
+
 build: build/MechJeb2.dll
 
 build/%.dll: ${MECHJEBFILES}
@@ -49,6 +60,18 @@ build/%.dll: ${MECHJEBFILES}
 		-r:Assembly-CSharp,Assembly-CSharp-firstpass,UnityEngine \
 		-out:$@ \
 		${MECHJEBFILES} \
+		-resource:build/Resources.resources,MuMech.Properties.Resources.resources
+
+test: buildtest/TestMechJeb2.dll
+	nunit-console -nologo buildtest/TestMechJeb2.dll
+
+buildtest/%.dll: ${TESTFILES}
+	mkdir -p buildtest
+	${RESGEN2} -usesourcepath MechJeb2/Properties/Resources.resx build/Resources.resources
+	${GMCS} -t:library -lib:"${MANAGED}","/Users/conrad/dev/mono/MechJeb2/build/" \
+		-r:Assembly-CSharp,Assembly-CSharp-firstpass,UnityEngine,nunit.framework,build/MechJeb2.dll \
+		-out:$@ \
+		${TESTFILES} \
 		-resource:build/Resources.resources,MuMech.Properties.Resources.resources
 
 package: build ${MECHJEBFILES}
